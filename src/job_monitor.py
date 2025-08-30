@@ -29,18 +29,24 @@ def send_line_message(channel_access_token: str, to: str, message: str) -> bool:
         return False
 
 def scrape_google_careers_jobs(url: str) -> list[dict]:
-    """Google Careersの求人一覧から求人名とURLを取得するサンプル"""
     response = requests.get(url)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
 
     jobs = []
-    # Google Careersの求人一覧のHTML構造に合わせて取得
-    # 例として求人カードのaタグを探し、タイトルとリンクを取得
-    for a in soup.select("a[jsname='job-card-link']"):  
-        title = a.get_text(strip=True)
-        job_url = "https://careers.google.com" + a.get("href")
-        jobs.append({"title": title, "url": job_url})
+    # aタグでhref属性ありのリンクを全取得
+    a_tags = soup.find_all("a", href=True)
+    for a in a_tags:
+        href = a["href"]
+        aria_label = a.get("aria-label", "")
+        if aria_label:
+            # URLが相対パスの場合はベースURLを付加
+            if href.startswith("/"):
+                href = "https://careers.google.com" + href
+            jobs.append({
+                "title": aria_label,
+                "url": href
+            })
     return jobs
 
 def is_job_in_db(job_url: str) -> bool:
@@ -63,7 +69,7 @@ def notify_new_job(job: dict):
     if not channel_access_token or not user_id:
         raise RuntimeError("LINEの認証情報が設定されていません")
 
-    message = f"新しい求人を発見しました！\n{job['title']}\n{job['url']}"
+    message = f"新しい求人を見つけたよ！\n{job['title']}\n{job['url']}"
     if send_line_message(channel_access_token, user_id, message):
         print("LINEメッセージ送信成功")
     else:
