@@ -1,0 +1,9 @@
+# 仮想環境を無視
+venv/
+venv_dev/
+get-pip.py
+.env
+
+__pycache__/
+*.py[cod]
+*$py.class
